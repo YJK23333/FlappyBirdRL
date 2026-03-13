@@ -1,30 +1,32 @@
 import numpy as np
 import random
 
-class FlappyBirdEnv:
 
+class FlappyBirdEnv:
     def __init__(self):
         self.width = 400
         self.height = 600
 
         self.gravity = 0.5
         self.jump_velocity = -8
+        self.max_velocity = 10
 
         self.pipe_gap = 150
         self.pipe_width = 60
         self.pipe_speed = 3
 
+        self.bird_x = 100
+
         self.reset()
 
     def reset(self):
-        self.bird_y = self.height // 2
+        self.bird_y = self.height / 2
         self.bird_velocity = 0
 
-        self.bird_x = 100
+        self.score = 0
+        self.steps = 0
 
         self.pipes = []
-        self.score = 0
-
         self._add_pipe()
 
         return self._get_state()
@@ -33,24 +35,31 @@ class FlappyBirdEnv:
         reward = 0.1
         done = False
 
+        self.steps += 1
+
+        # jump
         if action == 1:
             self.bird_velocity = self.jump_velocity
 
+        # physics
         self.bird_velocity += self.gravity
+        self.bird_velocity = np.clip(self.bird_velocity, -10, 10)
+
         self.bird_y += self.bird_velocity
 
+        # pipes
         self._update_pipes()
 
-        # Collision
+        # collision
         if self._check_collision():
-            reward = -5
+            reward = -1
             done = True
 
-        # Pass Pipe
+        # pass pipe
         pipe = self.pipes[0]
         if pipe["x"] + self.pipe_width < self.bird_x and not pipe["passed"]:
             pipe["passed"] = True
-            reward += 10
+            reward += 1
             self.score += 1
 
         state = self._get_state()
@@ -58,12 +67,12 @@ class FlappyBirdEnv:
         return state, reward, done
 
     def _add_pipe(self):
-        pipe_height = random.randint(100, 400)
+        pipe_top = random.randint(50, 450)
 
         pipe = {
             "x": self.width,
-            "top": pipe_height,
-            "bottom": pipe_height + self.pipe_gap,
+            "top": pipe_top,
+            "bottom": pipe_top + self.pipe_gap,
             "passed": False
         }
 
@@ -80,22 +89,25 @@ class FlappyBirdEnv:
     def _get_state(self):
         pipe = self.pipes[0]
 
+        pipe_center = (pipe["top"] + pipe["bottom"]) / 2
+
         state = np.array([
             self.bird_y / self.height,
-            self.bird_velocity / 10,
+            self.bird_velocity / self.max_velocity,
             (pipe["x"] - self.bird_x) / self.width,
-            pipe["top"] / self.height,
-            pipe["bottom"] / self.height
-        ])
+            pipe_center / self.height
+        ], dtype=np.float32)
 
         return state
 
     def _check_collision(self):
+        # ground / ceiling
         if self.bird_y < 0 or self.bird_y > self.height:
             return True
 
         pipe = self.pipes[0]
 
+        # pipe collision
         if pipe["x"] < self.bird_x < pipe["x"] + self.pipe_width:
 
             if self.bird_y < pipe["top"] or self.bird_y > pipe["bottom"]:

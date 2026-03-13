@@ -1,0 +1,26 @@
+# 字节码文件（即你刚才问的缓存）
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 虚拟环境 (Virtual Environments)
+venv/
+env/
+.venv/
+ENV/
+
+# 编译产物/分发包
+dist/
+build/
+*.egg-info/
+
+# 单元测试报告
+htmlcov/
+.tox/
+.pytest_cache/
+.coverage
+
+# 编辑器私有配置 (可选)
+.vscode/
+.idea/
+.DS_Store

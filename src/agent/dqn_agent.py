@@ -33,8 +33,8 @@ class DQNAgent:
         if np.random.rand() < self.epsilon:
             return np.random.randint(self.action_dim)
         state = torch.FloatTensor(state).unsqueeze(0).to(device)
-        q = self.q_net(state)
-
+        with torch.no_grad():
+            q = self.q_net(state)
         return q.argmax().item()
     
     def train(self, buffer):
@@ -42,11 +42,11 @@ class DQNAgent:
             return
         
         state, action, reward, next_state, done = buffer.sample(self.batch_size)
-        state = torch.FloatTensor(state).to(device)
-        next_state = torch.FloatTensor(next_state).to(device)
-        reward = torch.FloatTensor(reward).to(device)
-        action = torch.LongTensor(action).to(device)
-        done = torch.FloatTensor(done).to(device)
+        state = torch.tensor(state, dtype=torch.float32, device=device)
+        next_state = torch.tensor(next_state, dtype=torch.float32, device=device)
+        reward = torch.tensor(reward, dtype=torch.float32, device=device)
+        action = torch.tensor(action, dtype=torch.long, device=device)
+        done = torch.tensor(done, dtype=torch.float32, device=device)
 
         q_values = self.q_net(state)
         next_q_values = self.target_net(next_state)
@@ -55,7 +55,8 @@ class DQNAgent:
         next_q = next_q_values.max(1)[0]
 
         target = reward + self.gamma * next_q * (1 - done)
-        loss = F.mse_loss(q, target.detach())
+        loss = F.smooth_l1_loss(q, target)
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 10)
         self.optimizer.step()
