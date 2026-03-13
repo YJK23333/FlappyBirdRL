@@ -4,6 +4,7 @@ import utils.replay_buffer as replay_buffer
 import agent.dqn_agent as dqn_agent
 import flappy_bird_gymnasium
 from env.flappy_env import FlappyBirdEnv
+from utils.plot import plot_rewards
 
 # Parameters settings
 state_dim = 4
@@ -14,16 +15,20 @@ batch_size = 64
 episodes = 10000
 learning_rate = 1e-4
 epsilon = 1.0
-epsilon_min = 0.1
-epsilon_decay = 0.9995
+epsilon_min = 0.01
+epsilon_decay = 1e5
 target_update = 500
 
-
-
 env = FlappyBirdEnv()
-agent = dqn_agent.DQNAgent(state_dim,action_dim)
+agent = dqn_agent.DQNAgent(state_dim,action_dim,
+                           epsilon=epsilon,epsilon_min=epsilon_min,
+                           epsilon_decay=epsilon_decay,
+                           learning_rate=learning_rate,
+                           target_update=target_update)
 buffer = replay_buffer.ReplayBuffer(bufffer_capacity)
 
+
+rewards = []
 # Main training loop
 for episode in range(episodes):
     state = env.reset()
@@ -40,11 +45,10 @@ for episode in range(episodes):
         state = next_state
         episode_reward += reward
 
-    # Decay epsilon
-    if agent.epsilon > agent.epsilon_min:
-        agent.epsilon *= agent.epsilon_decay
-
+    rewards.append(episode_reward)
     if episode % target_update == 0:
         agent.update_target()
     if episode % 50 == 0:
         print(f"Episode {episode}  Reward {episode_reward:.2f}  epsilon {agent.epsilon:.3f}")
+
+plot_rewards(rewards)
