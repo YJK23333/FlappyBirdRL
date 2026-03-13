@@ -7,20 +7,23 @@ import model.dqn
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class DQNAgent:
-    def __init__(self, state_dim, action_dim):
+    def __init__(self, state_dim, action_dim, 
+                 batch_size=64, gamma=0.99, 
+                 epsilon=1.0, epsilon_min=0.01, 
+                 epsilon_decay=0.997, learning_rate=1e-4):
         self.state_dim = state_dim
         self.action_dim = action_dim
 
-        self.batch_size = 64
-        self.gamma = 0.99
-        self.epsilon = 1.0
-        self.epsilon_min = 0.05
-        self.epsilon_decay = 0.995
-        
+        self.batch_size = batch_size
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.epsilon_min = epsilon_min
+        self.epsilon_decay = epsilon_decay
+
         self.q_net = model.dqn.DQN(state_dim, action_dim).to(device)
         self.target_net = model.dqn.DQN(state_dim, action_dim).to(device)
 
-        self.optimizer = optim.Adam(self.q_net.parameters(), lr=1e-3)
+        self.optimizer = optim.Adam(self.q_net.parameters(), lr=learning_rate)
         self.update_target()
 
     def update_target(self):
