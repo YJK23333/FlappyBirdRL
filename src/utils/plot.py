@@ -8,7 +8,7 @@ def plot_rewards(rewards):
     plt.ylabel("Reward")
     plt.title("Training Curve")
     plt.legend()
-    plt.savefig("./results/training_curve.png")
+    plt.savefig("./pics/training_curve.png")
     plt.show()
 
 def moving_average(data, window_size=20):

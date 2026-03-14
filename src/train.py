@@ -6,10 +6,13 @@ import flappy_bird_gymnasium
 from env.flappy_env import FlappyBirdEnv
 from utils.plot import plot_rewards
 
+env = gym.make("FlappyBird-v0", render_mode="rgb_array")
+state, _ = env.reset()
+
 # Parameters settings
 episodes = 10000
-state_dim = 4
-action_dim = 2
+state_dim = env.observation_space.shape[0]
+action_dim = env.action_space.n
 bufffer_capacity = 100000
 gamma = 0.99
 batch_size = 64
@@ -20,7 +23,7 @@ epsilon_decay = 1e5
 target_update = 500
 print_step = 10
 
-env = FlappyBirdEnv()
+#env = FlappyBirdEnv()
 agent = dqn_agent.DQNAgent(state_dim,action_dim,
                            epsilon=epsilon,epsilon_min=epsilon_min,
                            epsilon_decay=epsilon_decay,
@@ -33,13 +36,14 @@ best_reward = float('-inf')
 rewards = []
 # Main training loop
 for episode in range(episodes):
-    state = env.reset()
+    state, _ = env.reset()
     done = False
     episode_reward = 0
 
     while not done:
         action = agent.select_action(state)
-        next_state,reward,done = env.step(action)
+        next_state,reward,terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
         buffer.push(state,action,reward,next_state,done)
 
         agent.train(buffer)
