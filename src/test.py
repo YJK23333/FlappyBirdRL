@@ -15,7 +15,7 @@ state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.n
 
 agent = DQNAgent(state_dim, action_dim)
-agent.q_net.load_state_dict(torch.load("./results/best_model2.pth", map_location=device))
+agent.q_net.load_state_dict(torch.load("./results/best_model4.pth", map_location=device))
 agent.q_net.eval()
 
 state, _ = env.reset()
@@ -34,7 +34,7 @@ video = cv2.VideoWriter(
 done = False
 
 while not done:
-    action = agent.select_action(state)
+    action = agent.select_action(state, False)
     next_state, action, terminated, truncted, _ = env.step(action)
     done = terminated or truncted
     frame = env.render()

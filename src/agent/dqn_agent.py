@@ -4,13 +4,14 @@ import torch.optim as optim
 import torch.nn.functional as F
 import numpy as np
 import model.dqn
+import math
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class DQNAgent:
     def __init__(self, state_dim, action_dim, 
                  batch_size=64, gamma=0.99, 
-                 epsilon=1.0, epsilon_min=0.01, 
+                 epsilon_start=1.0, epsilon_min=0.01, 
                  epsilon_decay=1e6, learning_rate=1e-4, 
                  target_update=500):
         self.state_dim = state_dim
@@ -18,7 +19,8 @@ class DQNAgent:
 
         self.batch_size = batch_size
         self.gamma = gamma
-        self.epsilon = epsilon
+        self.epsilon_start = epsilon_start
+        self.epsilon = epsilon_start
         self.epsilon_min = epsilon_min
         self.epsilon_decay = epsilon_decay
         self.learn_step = 0
@@ -33,8 +35,14 @@ class DQNAgent:
     def update_target(self):
         self.target_net.load_state_dict(self.q_net.state_dict())
 
-    def select_action(self, state):
-        if np.random.rand() < self.epsilon:
+    def soft_update_target(self, tau=0.005):
+        for target_param, param in zip(self.target_net.parameters(), self.q_net.parameters()):
+            target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
+
+    def select_action(self, state, train=True):
+        current_epsilon = self.epsilon if train else 0.0
+
+        if np.random.rand() < current_epsilon:
             return np.random.randint(self.action_dim)
         state = torch.FloatTensor(state).unsqueeze(0).to(device)
         with torch.no_grad():
@@ -59,14 +67,19 @@ class DQNAgent:
             next_actions = self.q_net(next_state).argmax(1)
             next_q = self.target_net(next_state).gather(1, next_actions.unsqueeze(1)).squeeze(1)
 
-        target = reward + self.gamma * next_q * (1 - done)
+        target = reward + self.gamma * next_q * (1 - done).detach()
         loss = F.smooth_l1_loss(q, target)
         self.optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 10)
+        torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 1.0)
         self.optimizer.step()
 
         self.learn_step += 1
-        if self.learn_step % self.target_update == 0:
-            self.update_target()
-        self.epsilon = max(self.epsilon_min, 1 - self.learn_step / self.epsilon_decay)
+        
+        # target update
+        #if self.learn_step % self.target_update == 0:
+        #    self.update_target()
+        self.soft_update_target()
+        
+        self.epsilon = self.epsilon_min + (self.epsilon_start - self.epsilon_min) * \
+                            math.exp(-1. * self.learn_step / self.epsilon_decay)

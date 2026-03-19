@@ -4,28 +4,37 @@ import utils.replay_buffer as replay_buffer
 import agent.dqn_agent as dqn_agent
 import flappy_bird_gymnasium
 from env.flappy_env import FlappyBirdEnv
+from env.env_wrapper import RewardWrapper
 from utils.plot import plot_rewards
 
+# Env init
+#env = FlappyBirdEnv()
 env = gym.make("FlappyBird-v0", render_mode="rgb_array")
-state, _ = env.reset()
+
 
 # Parameters settings
-episodes = 10000
+episodes = 20000
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.n
 bufffer_capacity = 100000
 gamma = 0.99
-batch_size = 64
+batch_size = 256
 learning_rate = 1e-4
-epsilon = 1.0
+epsilon_start = 1.0
 epsilon_min = 0.01
-epsilon_decay = 1e5
-target_update = 500
+epsilon_decay = 3e5
+target_update = 1000
 print_step = 10
+live_reward = 0.01
+pass_reward = 3
+death_reward = -3
 
-#env = FlappyBirdEnv()
+env = RewardWrapper(env, live_reward=live_reward,
+                    pass_reward=pass_reward, death_reward=death_reward)
+state, _ = env.reset()
 agent = dqn_agent.DQNAgent(state_dim,action_dim,
-                           epsilon=epsilon,epsilon_min=epsilon_min,
+                           epsilon_start=epsilon_start,
+                           epsilon_min=epsilon_min,
                            epsilon_decay=epsilon_decay,
                            learning_rate=learning_rate,
                            target_update=target_update)
@@ -55,7 +64,7 @@ for episode in range(episodes):
     # save best model
     if best_reward < episode_reward:
         best_reward = episode_reward
-        torch.save(agent.q_net.state_dict(), "./results/best_model.pth")
+        torch.save(agent.q_net.state_dict(), f"./results/best_model_{episode_reward:.2f}.pth")
 
     # print training info
     if episode % print_step == 0:
