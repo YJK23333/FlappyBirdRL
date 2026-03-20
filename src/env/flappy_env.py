@@ -3,7 +3,8 @@ import random
 
 
 class FlappyBirdEnv:
-    def __init__(self):
+    def __init__(self, live_reward=0.1, 
+                 pass_reward=3, death_reward=-3):
         self.width = 400
         self.height = 600
 
@@ -16,6 +17,10 @@ class FlappyBirdEnv:
         self.pipe_speed = 3
 
         self.bird_x = 100
+
+        self.live_reward = live_reward
+        self.pass_reward = pass_reward
+        self.death_reward = death_reward
 
         self.reset()
 
@@ -32,8 +37,8 @@ class FlappyBirdEnv:
         return self._get_state()
 
     def step(self, action):
-        reward = 0.1
-        done = False
+        reward += self.live_reward
+        terminated = False
 
         self.steps += 1
 
@@ -52,19 +57,20 @@ class FlappyBirdEnv:
 
         # collision
         if self._check_collision():
-            reward = -1
-            done = True
+            reward -=self.death_reward
+            terminated = True
+            truncated = True
 
         # pass pipe
         pipe = self.pipes[0]
         if pipe["x"] + self.pipe_width < self.bird_x and not pipe["passed"]:
             pipe["passed"] = True
-            reward += 1
+            reward += self.pass_reward
             self.score += 1
 
         state = self._get_state()
 
-        return state, reward, done
+        return state, reward, terminated, truncated, self.score
 
     def _add_pipe(self):
         pipe_top = random.randint(50, 450)

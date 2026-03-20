@@ -7,6 +7,8 @@ import flappy_bird_gymnasium
 from agent.dqn_agent import DQNAgent
 from env.flappy_env import FlappyBirdEnv
 
+model_num = 4
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 env = gym.make("FlappyBird-v0", render_mode="rgb_array")
@@ -15,7 +17,7 @@ state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.n
 
 agent = DQNAgent(state_dim, action_dim)
-agent.q_net.load_state_dict(torch.load("./results/best_model4.pth", map_location=device))
+agent.q_net.load_state_dict(torch.load(f"./results/best_model_29000_5.90.pth", map_location=device))
 agent.q_net.eval()
 
 state, _ = env.reset()
@@ -25,7 +27,7 @@ height, width, _ = frame.shape
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
 video = cv2.VideoWriter(
-    "./mp4/flappybird_agent.mp4",
+    f"./mp4/flappybird_agent_{model_num}.mp4",
     fourcc,
     30,
     (width, height)

@@ -13,19 +13,20 @@ env = gym.make("FlappyBird-v0", render_mode="rgb_array")
 
 
 # Parameters settings
-episodes = 20000
+episodes = 30000
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.n
 bufffer_capacity = 100000
 gamma = 0.99
-batch_size = 256
+batch_size = 128
 learning_rate = 1e-4
 epsilon_start = 1.0
 epsilon_min = 0.01
-epsilon_decay = 3e5
+epsilon_decay = 1e5
 target_update = 1000
 print_step = 10
-live_reward = 0.01
+save_step = 1000
+live_reward = 0.1
 pass_reward = 3
 death_reward = -3
 
@@ -61,10 +62,16 @@ for episode in range(episodes):
         episode_reward += reward
 
     rewards.append(episode_reward)
-    # save best model
+    # save best model 
     if best_reward < episode_reward:
         best_reward = episode_reward
         torch.save(agent.q_net.state_dict(), f"./results/best_model_{episode_reward:.2f}.pth")
+
+    if episode == 20000:
+        agent.epsilon = epsilon_min
+
+    if episode % save_step == 0:
+        torch.save(agent.q_net.state_dict(), f"./results/best_model_{episode}_{episode_reward:.2f}.pth")
 
     # print training info
     if episode % print_step == 0:
